@@ -6,6 +6,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -18,8 +19,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ErrorCollector;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 
+import br.ce.wcaquino.builder.FilmeBuilder;
 import br.ce.wcaquino.builder.UsuarioBuilder;
+import br.ce.wcaquino.dao.LocacaoDAO;
 import br.ce.wcaquino.entidades.Filme;
 import br.ce.wcaquino.entidades.Locacao;
 import br.ce.wcaquino.entidades.Usuario;
@@ -34,6 +38,8 @@ public class LocacaoServiceTest {
 	public ErrorCollector error = new ErrorCollector();
 	
 	private LocacaoService service;
+	private SPCService spc;
+	private LocacaoDAO dao;
 	
 	
 	@Rule
@@ -44,6 +50,10 @@ public class LocacaoServiceTest {
 	@Before
 	public void setup() {
 		service = new LocacaoService();
+		dao = Mockito.mock(LocacaoDAO.class);
+		service.setLocacaoDAO(dao);
+		spc = Mockito.mock(SPCService.class);
+		service.setSpcService(spc);
 		
 	}
 	
@@ -55,7 +65,7 @@ public class LocacaoServiceTest {
 		//cenario
 		List<Filme> filmes = new ArrayList<>();
 		Usuario usuario = umUsuario().agora();
-		Filme filme = new Filme("Titanic", 2, 5.0);
+		Filme filme = FilmeBuilder.umFilme().agora();
 		filmes.add(filme);
 		//acao
 		
@@ -64,7 +74,7 @@ public class LocacaoServiceTest {
 			error.checkThat(locacao.getDataLocacao(), MatchersPropios.ehHoje());
 			error.checkThat(locacao.getDataRetorno(), MatchersPropios.ehHojeComDiferencaDias(1));
 			
-			
+		
 		
 		
 		//verificacao
@@ -77,9 +87,9 @@ public class LocacaoServiceTest {
 		//cenario
 		List<Filme> filmes = new ArrayList<>();
 		Usuario usuario = umUsuario().agora();
-		Filme filme = new Filme("Titanic", 0, 5.0);
-		Filme filme1 = new Filme("Titanic", 0, 5.0);
-		Filme filme2 = new Filme("Titanic", 0, 5.0);
+		Filme filme = FilmeBuilder.umFilmeSemEstoque().agora();
+		Filme filme1 = FilmeBuilder.umFilmeSemEstoque().agora();
+		Filme filme2 = FilmeBuilder.umFilmeSemEstoque().agora();
 		filmes.add(filme);
 		filmes.add(filme1);
 		filmes.add(filme2);
@@ -91,15 +101,15 @@ public class LocacaoServiceTest {
 	}
 	
 	
-
+	@Test
 	public void testLocacao_filmeSemEstoque2() {
 		
 		//cenario
 		List<Filme> filmes = new ArrayList<>();
 		Usuario usuario = umUsuario().agora();
-		Filme filme = new Filme("Titanic", 1, 5.0);
-		Filme filme1 = new Filme("Titanic", 1, 5.0);
-		Filme filme2 = new Filme("Titanic", 1, 5.0);
+		Filme filme = FilmeBuilder.umFilmeSemEstoque().agora();
+		Filme filme1 = FilmeBuilder.umFilmeSemEstoque().agora();
+		Filme filme2 = FilmeBuilder.umFilmeSemEstoque().agora();
 		filmes.add(filme);
 		filmes.add(filme1);
 		filmes.add(filme2);
@@ -108,8 +118,9 @@ public class LocacaoServiceTest {
 				
 		try {
 			service.alugarFilme(usuario, filmes);
-			Assert.fail("Deveria lan�ar excecao");
+			Assert.fail("Deveria lançar excecao");
 		} catch (Exception e) {
+		
 			Assert.assertThat(e.getMessage(), CoreMatchers.is("Sem estoque"));
 		}
 		
@@ -123,9 +134,9 @@ public class LocacaoServiceTest {
 		
 		List<Filme> filmes = new ArrayList<>();
 		Usuario usuario = umUsuario().agora();
-		Filme filme = new Filme("Titanic", 0, 5.0);
-		Filme filme1 = new Filme("Titanic", 0, 5.0);
-		Filme filme2 = new Filme("Titanic", 0, 5.0);
+		Filme filme = FilmeBuilder.umFilme().semEstoque().agora();
+		Filme filme1 = FilmeBuilder.umFilme().semEstoque().agora();
+		Filme filme2 = FilmeBuilder.umFilme().semEstoque().agora();
 		filmes.add(filme);
 		filmes.add(filme1);
 		filmes.add(filme2);
@@ -145,9 +156,9 @@ public class LocacaoServiceTest {
 	public void testLocacaoUsuarioVazio() throws FilmesSemEstoqueException {
 		//cenario
 		List<Filme> filmes = new ArrayList<>();
-		Filme filme = new Filme("Titanic", 1, 5.0);
-		Filme filme1 = new Filme("Titanic", 1, 5.0);
-		Filme filme2 = new Filme("Titanic", 1, 5.0);
+		Filme filme = FilmeBuilder.umFilme().agora();
+		Filme filme1 =FilmeBuilder.umFilme().agora();
+		Filme filme2 = FilmeBuilder.umFilme().agora();
 		filmes.add(filme);
 		filmes.add(filme1);
 		filmes.add(filme2);
@@ -184,7 +195,7 @@ public class LocacaoServiceTest {
 		
 		//cenario 
 		Usuario usuario = umUsuario().agora();
-		Filme filme = new Filme("Titanic", 1, 5.0);
+		Filme filme = FilmeBuilder.umFilme().agora();
 		List<Filme> filmes = new ArrayList<>();
 		filmes.add(filme);
 		
@@ -195,6 +206,26 @@ public class LocacaoServiceTest {
 		assertThat(retorno.getDataRetorno(), MatchersPropios.caiEm(Calendar.MONDAY));
 		
 	}
+	
+	@Test
+	public void naoDeveAlugarFilmeParaNegativado() throws FilmesSemEstoqueException, LocadoraException {
+		//cenario
+		Usuario usuario = UsuarioBuilder.umUsuario().agora();
+		Usuario usuario2 = UsuarioBuilder.umUsuario().agora();
+		List<Filme> filmes = Arrays.asList(FilmeBuilder.umFilme().agora());
+		
+		Mockito.when(spc.possuiNegativacao(usuario)).thenReturn(true);
+		
+		exception.expect(LocadoraException.class);
+		exception.expectMessage("Usuário negativado");
+		
+		//acao
+		service.alugarFilme(usuario2, filmes);
+		
+		
+	}
+	
+	
 }
 
 

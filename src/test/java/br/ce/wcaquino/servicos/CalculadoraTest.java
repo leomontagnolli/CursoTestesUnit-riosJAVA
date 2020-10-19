@@ -3,10 +3,12 @@ package br.ce.wcaquino.servicos;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import br.ce.wcaquino.exception.NaoPodeDividirPorZeroException;
+import br.ce.wcaquino.runners.ParalelRunner;
 
-
+@RunWith(ParalelRunner.class)
 public class CalculadoraTest {
 	
 	private Calculadora calc;
